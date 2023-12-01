@@ -1,0 +1,3 @@
+[package]
+name = "connect4-rust"
+version = "1.0.0"
