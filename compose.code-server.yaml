@@ -1,0 +1,23 @@
+# Compose file for running code-server inside Docker
+
+services:
+  conn4dev:
+    init: true # This makes `docker compose stop` run faster.
+    image: "conn4dev:latest"
+    volumes:
+     - ./:/project
+     - ~/.config/Code/User/settings.json:/root/.local/share/code-server/User/settings.json
+     - cache1:/root/.cache
+     - cache2:/tmp
+     - cache3:/cargo_target
+    network_mode: none
+    environment:
+      # This envvar makes rust-analyzer work in offline mode.
+      # From https://github.com/rust-lang/rust-analyzer/issues/12499#issuecomment-1426960249
+      CARGO_NET_OFFLINE: "true"
+      CARGO_TARGET_DIR: "/cargo_target"
+
+volumes:
+  cache1:
+  cache2:
+  cache3:

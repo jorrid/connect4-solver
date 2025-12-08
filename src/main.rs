@@ -2,6 +2,11 @@
 // Nightly Rust is required because SIMD isn't stabilized yet.
 #![feature(portable_simd)]
 
+// Avoid musl's default allocator due to lackluster performance
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 mod bitboard;
 mod board;
 mod cache;

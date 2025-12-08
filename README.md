@@ -17,7 +17,7 @@ A blog post with more information is available [here](https://jorrid.com/posts/t
 To time how long it takes to solve, run:
 
 ```
-time rustup run nightly cargo run --release
+docker build --target main --tag conn4 . && time docker run --init -it conn4
 ```
 
 # Benchmarks
