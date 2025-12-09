@@ -20,6 +20,14 @@ To time how long it takes to solve, run:
 docker build --target main --tag conn4 . && time docker run --init -it conn4
 ```
 
+Running tests:
+
+```
+docker build --target test .
+```
+
+Note: part of this is `test_positions` in `main.rs` which is an integration test that takes ~2k seconds to run.
+
 # Benchmarks
 
 Some operations have multiple implementations (mainly SIMD or not SIMD). There are some benchmarks that help to decide what is faster.

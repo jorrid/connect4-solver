@@ -15,6 +15,14 @@ COPY Cargo.toml Cargo.lock .cargo /project/
 RUN echo "pub fn main() {panic!(\"If you see this, the source did not get copied in a later stage.\");}" > src/main.rs
 RUN cargo fetch --manifest-path /project/Cargo.toml
 RUN rm -r ./*
+# Fetch testdata for license reasons.
+RUN mkdir testdata && cd testdata && curl \
+         -O "http://blog.gamesolver.org/data/Test_L3_R1" \
+         -O "http://blog.gamesolver.org/data/Test_L2_R1" \
+         -O "http://blog.gamesolver.org/data/Test_L2_R2" \
+         -O "http://blog.gamesolver.org/data/Test_L1_R1" \
+         -O "http://blog.gamesolver.org/data/Test_L1_R2" \
+         -O "http://blog.gamesolver.org/data/Test_L1_R3"
 
 FROM ubuntu:24.04 AS code_server
 RUN apt-get update -y && apt-get install -y curl
@@ -45,3 +53,7 @@ RUN --network=none --mount=type=cache,target=/cargo_target \
 FROM alpine AS main
 COPY --from=main_build /project/main /
 CMD ["/main"]
+
+FROM rust_src AS test
+RUN --network=none --mount=type=cache,target=/cargo_target \
+    cargo test --release --target-dir=/cargo_target --manifest-path /project/Cargo.toml

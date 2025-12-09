@@ -13,6 +13,7 @@ mod cache;
 
 use board::Board;
 use cache::Cache;
+use std::fs::read_to_string;
 
 const CACHE_DEPTH_SKIP: u64 = 2;
 const MOVE_ORDERING_MAX_DEPTH: u64 = 20;
@@ -109,4 +110,52 @@ fn main() {
         }
         .minimax(board::empty(), 0)
     );
+}
+
+mod tests {
+    use std::path::Path;
+
+    use super::*;
+
+    fn test_positions_from_file(fname: &str) {
+        let mut cache = cache::new(28); // 4GB cache.
+        let mut mmstate = MinimaxState {
+            moves_examined: 0,
+            cache: &mut cache
+        };
+        // Using the format as described here: http://blog.gamesolver.org/solving-connect-four/02-test-protocol/
+        for line in read_to_string(Path::new("testdata").join(fname)).unwrap().lines() {
+            println!("{}", line);
+            let line_parts: Vec<_> = line.split(" ").collect();
+            assert_eq!(line_parts.len(), 2);
+            let moves: &str = line_parts[0];
+            let score: i64 = line_parts[1].parse().unwrap();
+            let mut board = board::empty();
+            for mov in moves.as_bytes() {
+                let possible_moves = board.moves();
+                let move_ = possible_moves.for_column((mov - b'1') as u64);
+                assert!(!move_.empty());
+                board = board.do_move(move_);
+            }
+            // If first player to move, success means winning.
+            // If second player to move, success means winning or draw.
+            let success = mmstate.minimax(board, moves.len() as u64);
+            let first_player_to_move = moves.len()%2 == 0;
+            if first_player_to_move {
+                assert!(success == (score > 0));
+            } else {
+                assert!(success == (score >= 0));
+            }
+        }
+    }
+
+    #[test]
+    fn test_positions() {
+        test_positions_from_file("Test_L3_R1");
+        test_positions_from_file("Test_L2_R1");
+        test_positions_from_file("Test_L2_R2");
+        test_positions_from_file("Test_L1_R1");
+        test_positions_from_file("Test_L1_R2");
+        test_positions_from_file("Test_L1_R3");
+    }
 }
