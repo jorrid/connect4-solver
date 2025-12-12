@@ -15,15 +15,23 @@ use board::Board;
 use cache::Cache;
 use std::fs::read_to_string;
 
+const DEBUG_PRINT_DEPTH: u64 = 5;
 const CACHE_DEPTH_SKIP: u64 = 2;
 const MOVE_ORDERING_MAX_DEPTH: u64 = 20;
 
 struct MinimaxState<'cache> {
     moves_examined: u64,
     cache: &'cache mut Cache,
+    first_player_can_draw: bool,
 }
 
 impl<'cache> MinimaxState<'cache> {
+    // For simplicity, this function returns true if the current player can
+    // force a "succesful" outcome: win or maybe a draw, see below.
+    // If `first_player_can_draw` is true, then drawing is considered a
+    // succesful outcome for the first player to move. Correspondingly,
+    // it is not a succesful outcome for the second player to move.
+    // And vice versa.
     fn minimax(&mut self, board: Board, depth: u64) -> bool {
         let mut cache_board = None;
         if depth % CACHE_DEPTH_SKIP == 0 {
@@ -36,12 +44,12 @@ impl<'cache> MinimaxState<'cache> {
             }
         }
 
-        let moves = board.safe_moves(board.moves());
+        let moves = board.moves();
         if moves.empty() {
-            // Two possibilities:
-            // 1. The board is full, it follows that we're the first player.
-            //    We are testing if the first player can win the game, so return false.
-            // 2. There are no safe moves, we'll always lose, see safe_moves().
+            return self.first_player_can_draw;
+        }
+        let moves = board.non_losing_moves(moves);
+        if moves.empty() {
             return false;
         }
 
@@ -78,7 +86,7 @@ impl<'cache> MinimaxState<'cache> {
             }
             let moved_board = board.do_move(move_);
             let moved_result = self.minimax(moved_board, depth + 1);
-            if depth == 5 {
+            if depth == DEBUG_PRINT_DEPTH {
                 moved_board.print();
                 println!(
                     "player={}, result={}, examined={}",
@@ -103,10 +111,11 @@ impl<'cache> MinimaxState<'cache> {
 fn main() {
     let mut cache = cache::new(26); // 1GB cache.
     println!(
-        "Result: {}",
+        "First player to move can force a win: {}",
         MinimaxState {
             moves_examined: 0,
-            cache: &mut cache
+            cache: &mut cache,
+            first_player_can_draw: false,
         }
         .minimax(board::empty(), 0)
     );
@@ -118,13 +127,21 @@ mod tests {
     use super::*;
 
     fn test_positions_from_file(fname: &str) {
-        let mut cache = cache::new(28); // 4GB cache.
-        let mut mmstate = MinimaxState {
+        let mut win_setup = MinimaxState {
             moves_examined: 0,
-            cache: &mut cache
+            cache: &mut cache::new(27), // 2GB cache.
+            first_player_can_draw: false,
+        };
+        let mut draw_setup = MinimaxState {
+            moves_examined: 0,
+            cache: &mut cache::new(27), // 2GB cache.
+            first_player_can_draw: true,
         };
         // Using the format as described here: http://blog.gamesolver.org/solving-connect-four/02-test-protocol/
-        for line in read_to_string(Path::new("testdata").join(fname)).unwrap().lines() {
+        for line in read_to_string(Path::new("testdata").join(fname))
+            .unwrap()
+            .lines()
+        {
             println!("{}", line);
             let line_parts: Vec<_> = line.split(" ").collect();
             assert_eq!(line_parts.len(), 2);
@@ -137,14 +154,27 @@ mod tests {
                 assert!(!move_.empty());
                 board = board.do_move(move_);
             }
-            // If first player to move, success means winning.
-            // If second player to move, success means winning or draw.
-            let success = mmstate.minimax(board, moves.len() as u64);
-            let first_player_to_move = moves.len()%2 == 0;
-            if first_player_to_move {
-                assert!(success == (score > 0));
+            let first_player_to_move = moves.len() % 2 == 0;
+            let can_force_a_win = (if first_player_to_move {
+                &mut win_setup
             } else {
-                assert!(success == (score >= 0));
+                &mut draw_setup
+            })
+            .minimax(board, moves.len() as u64);
+            if can_force_a_win {
+                assert!(score > 0);
+            } else {
+                let can_force_a_draw = (if first_player_to_move {
+                    &mut draw_setup
+                } else {
+                    &mut win_setup
+                })
+                .minimax(board, moves.len() as u64);
+                if can_force_a_draw {
+                    assert!(score == 0);
+                } else {
+                    assert!(score < 0);
+                }
             }
         }
     }

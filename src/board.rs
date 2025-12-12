@@ -45,8 +45,8 @@ impl Board {
         return (self.current.raw(), self.other.raw());
     }
 
-    pub fn safe_moves(self, moves: BitBoard) -> BitBoard {
-        return self.other.safe_moves(moves);
+    pub fn non_losing_moves(self, moves: BitBoard) -> BitBoard {
+        return self.other.non_losing_moves(moves);
     }
 
     pub fn mirror(self) -> Board {

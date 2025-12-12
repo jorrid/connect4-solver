@@ -26,7 +26,7 @@ Running tests:
 docker build --target test .
 ```
 
-Note: part of this is `test_positions` in `main.rs` which is an integration test that takes ~2k seconds to run.
+Note: part of this is `test_positions` in `main.rs` which is an integration test testing many board positions that takes about one hour to run for me.
 
 # Benchmarks
 

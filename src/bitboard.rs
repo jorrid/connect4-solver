@@ -126,10 +126,10 @@ impl BitBoard {
         };
     }
 
-    // safe_moves must be called on the opponents bitboard with the moves of the
+    // non_losing_moves must be called on the opponents bitboard with the moves of the
     // current player. Returns a subset of `moves` that doesn't result in an
     // unavoidable win for the opponent.
-    pub fn safe_moves(self, moves: BitBoard) -> BitBoard {
+    pub fn non_losing_moves(self, moves: BitBoard) -> BitBoard {
         // Note: opp_almost_wins might contain bits in invalid places.
         let opp_almost_wins = self.almost_wins().raw();
         // Direct wins are moves that if the opponent plays them, they win.
